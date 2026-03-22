@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.com.example.myapplication
 
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import com.example.myapplication.R
 import java.util.Locale
 
 class PayCalculatorActivity : ComponentActivity() {
@@ -24,7 +25,7 @@ class PayCalculatorActivity : ComponentActivity() {
         val buttonCalculatePay = findViewById<Button>(R.id.buttonCalculatePay)
 
         val weeklyHours = sharedPreferences.getFloat("weeklyHours", 0f)
-        textSavedHours.text = String.format(Locale.US, "Saved weekly hours: %.2f", weeklyHours)
+        textSavedHours.text = String.Companion.format(Locale.US, "Saved weekly hours: %.2f", weeklyHours)
 
         buttonCalculatePay.setOnClickListener {
             val rateText = editRate.text.toString()
@@ -34,7 +35,7 @@ class PayCalculatorActivity : ComponentActivity() {
                 textPayResult.text = "Please enter a valid hourly rate"
             } else {
                 val totalPay = weeklyHours * rate
-                textPayResult.text = String.format(Locale.US, "Total Pay: $%.2f", totalPay)
+                textPayResult.text = String.Companion.format(Locale.US, "Total Pay: $%.2f", totalPay)
             }
         }
     }

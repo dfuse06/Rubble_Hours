@@ -11,7 +11,9 @@
         android:roundIcon="@mipmap/icon_1024"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
-        <activity android:name=".PayCalculatorActivity" />
+        <activity android:name=".DailyLogActivity"
+            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+        <activity android:name=".com.example.myapplication.PayCalculatorActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -66,6 +66,13 @@
             android:layout_marginBottom="16dp"
             android:backgroundTint="#FF018786"
             android:text="Go To Pay Calculator" />
+            
+        <Button
+           android:id="@+id/buttonDailyLog"
+           android:layout_width="match_parent"
+           android:layout_height="wrap_content"
+           android:text="GO TO DAILY LOG"
+           android:layout_marginTop="16dp"/>
 
         <Button
             android:id="@+id/buttonResetWeek"

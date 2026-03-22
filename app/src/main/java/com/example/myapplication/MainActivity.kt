@@ -7,14 +7,17 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import com.example.myapplication.com.example.myapplication.PayCalculatorActivity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
+    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +29,7 @@ class MainActivity : ComponentActivity() {
         val buttonClockOut = findViewById<Button>(R.id.buttonClockOut)
         val buttonPayCalculator = findViewById<Button>(R.id.buttonPayCalculator)
         val buttonResetWeek = findViewById<Button>(R.id.buttonResetWeek)
+        val buttonDailyLog = findViewById<Button>(R.id.buttonDailyLog)
 
         val textStatus = findViewById<TextView>(R.id.textStatus)
         val textLastShift = findViewById<TextView>(R.id.textLastShift)
@@ -60,6 +64,15 @@ class MainActivity : ComponentActivity() {
                 val currentWeeklyHours = sharedPreferences.getFloat("weeklyHours", 0f).toDouble()
                 val newWeeklyHours = currentWeeklyHours + workedHours
 
+                val shiftEntry = ShiftEntry(
+                    date = formatDate(clockOutTime),
+                    clockIn = formatTime(clockInTime),
+                    clockOut = formatTime(clockOutTime),
+                    hoursWorked = workedHours
+                )
+
+                saveShift(shiftEntry)
+
                 sharedPreferences.edit()
                     .putFloat("weeklyHours", newWeeklyHours.toFloat())
                     .remove("clockInTime")
@@ -93,6 +106,10 @@ class MainActivity : ComponentActivity() {
             textLastShift.text = "Last shift: 0.00 hours"
             Toast.makeText(this, "Weekly hours reset", Toast.LENGTH_SHORT).show()
         }
+
+        buttonDailyLog.setOnClickListener {
+            startActivity(Intent(this, DailyLogActivity::class.java))
+        }
     }
 
     private fun updateWeeklyHours(textView: TextView) {
@@ -103,5 +120,24 @@ class MainActivity : ComponentActivity() {
     private fun formatTime(timeMillis: Long): String {
         val sdf = SimpleDateFormat("hh:mm a", Locale.US)
         return sdf.format(Date(timeMillis))
+    }
+
+    private fun formatDate(timeMillis: Long): String {
+        val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+        return sdf.format(Date(timeMillis))
+    }
+
+    private fun saveShift(shiftEntry: ShiftEntry) {
+        val shifts = loadShifts()
+        shifts.add(shiftEntry)
+
+        val json = gson.toJson(shifts)
+        sharedPreferences.edit().putString("dailyLog", json).apply()
+    }
+
+    private fun loadShifts(): MutableList<ShiftEntry> {
+        val json = sharedPreferences.getString("dailyLog", null) ?: return mutableListOf()
+        val type = object : TypeToken<MutableList<ShiftEntry>>() {}.type
+        return gson.fromJson(json, type)
     }
 }
