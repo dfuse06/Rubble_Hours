@@ -3,39 +3,44 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="@drawable/bg_shift_card"
     android:padding="16dp"
-    android:background="@drawable/shift_card_bg">
+    android:layout_marginBottom="8dp">
 
     <TextView
         android:id="@+id/textDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Mar 23, 2026"
+        android:textColor="#FFFFFF"
         android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF" />
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textClockIn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="15sp"
-        android:textColor="#DDDDDD" />
+        android:layout_marginTop="12dp"
+        android:text="In: 12:34 AM"
+        android:textColor="#E0E0E0"
+        android:textSize="16sp" />
 
     <TextView
         android:id="@+id/textClockOut"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="15sp"
-        android:textColor="#DDDDDD" />
+        android:layout_marginTop="8dp"
+        android:text="Out: 12:34 AM"
+        android:textColor="#E0E0E0"
+        android:textSize="16sp" />
 
     <TextView
         android:id="@+id/textHoursWorked"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="15sp"
-        android:textColor="#B8E986" />
-
+        android:layout_marginTop="12dp"
+        android:text="Hours: 0.00"
+        android:textColor="#FF018786"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 </LinearLayout>
