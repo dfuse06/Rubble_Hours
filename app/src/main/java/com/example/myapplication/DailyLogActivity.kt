@@ -25,7 +25,8 @@ class DailyLogActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var listView: ListView
     private lateinit var adapter: ShiftAdapter
-    private lateinit var fabEndWeek: FloatingActionButton
+    private lateinit var fabSaveCsv: FloatingActionButton
+    private lateinit var fabClearWeek: FloatingActionButton
     private lateinit var buttonShareWeeklyLog: ImageButton
     private val gson = Gson()
 
@@ -37,7 +38,8 @@ class DailyLogActivity : AppCompatActivity() {
         sharedPreferences = getSharedPreferences("WorkAppPrefs", MODE_PRIVATE)
 
         listView = findViewById(R.id.listViewShifts)
-        fabEndWeek = findViewById(R.id.fabEndWeek)
+        fabSaveCsv = findViewById(R.id.fabSaveCsv)
+        fabClearWeek = findViewById(R.id.fabClearWeek)
         buttonShareWeeklyLog = findViewById(R.id.buttonShareWeeklyLog)
 
         loadList()
@@ -46,24 +48,28 @@ class DailyLogActivity : AppCompatActivity() {
             shareWeeklyLogAsText()
         }
 
-        fabEndWeek.setOnClickListener {
-            confirmEndWeek()
+        fabSaveCsv.setOnClickListener {
+            saveWeeklyLogAsCsvOnly()
+        }
+
+        fabClearWeek.setOnClickListener {
+            confirmClearWeek()
         }
     }
 
-    private fun confirmEndWeek() {
+    private fun confirmClearWeek() {
         val weeklyShifts = getCurrentWeekShifts(loadShifts())
 
         if (weeklyShifts.isEmpty()) {
-            Toast.makeText(this, "No shifts to save", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "No shifts to clear", Toast.LENGTH_SHORT).show()
             return
         }
 
         AlertDialog.Builder(this)
-            .setTitle("End Week")
-            .setMessage("Save this week's CSV and clear the week?")
-            .setPositiveButton("Save & Clear") { _, _ ->
-                saveWeeklyLogAsCsvOnly()
+            .setTitle("Clear Week")
+            .setMessage("This will permanently clear this week's hours and log entries. Continue?")
+            .setPositiveButton("Clear") { _, _ ->
+                clearWeeklyData()
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -154,7 +160,6 @@ class DailyLogActivity : AppCompatActivity() {
             }
 
             Toast.makeText(this, "CSV saved to Downloads/Rubble Hours", Toast.LENGTH_LONG).show()
-            clearWeeklyData()
 
         } catch (e: Exception) {
             Toast.makeText(this, "Error saving CSV: ${e.message}", Toast.LENGTH_LONG).show()

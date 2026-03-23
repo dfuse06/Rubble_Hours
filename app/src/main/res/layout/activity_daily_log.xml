@@ -5,13 +5,11 @@
     android:layout_height="match_parent"
     android:background="#121212">
 
-    <!-- Main content -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="90dp"
@@ -24,8 +22,8 @@
                 android:id="@+id/textDailyLogTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
                 android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:text="Daily Log"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
@@ -33,16 +31,15 @@
 
             <ImageButton
                 android:id="@+id/buttonShareWeeklyLog"
-                android:gravity="center_vertical"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Share Weekly Log"
+                android:gravity="center_vertical"
                 android:src="@android:drawable/ic_menu_share"
                 android:tint="#FFFFFF" />
         </LinearLayout>
 
-        <!-- List -->
         <ListView
             android:id="@+id/listViewShifts"
             android:layout_width="match_parent"
@@ -53,18 +50,32 @@
             android:divider="@android:color/transparent"
             android:dividerHeight="10dp"
             android:padding="12dp"
-            android:paddingBottom="96dp" />
+            android:paddingBottom="140dp" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabEndWeek"
+        android:id="@+id/fabSaveCsv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="80dp"
         android:layout_marginEnd="20dp"
-        android:contentDescription="End Week"
+        android:layout_marginBottom="150dp"
+        android:contentDescription="Save CSV"
         app:backgroundTint="#FF018786"
-        app:srcCompat="@android:drawable/ic_menu_save" />
+        app:fabSize="mini"
+        app:srcCompat="@android:drawable/ic_menu_save"
+        app:tint="#FFFFFF" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabClearWeek"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="80dp"
+        android:contentDescription="Clear Week"
+        app:backgroundTint="#FFB00020"
+        app:srcCompat="@android:drawable/ic_menu_delete"
+        app:tint="#FFFFFF" />
 
 </FrameLayout>
