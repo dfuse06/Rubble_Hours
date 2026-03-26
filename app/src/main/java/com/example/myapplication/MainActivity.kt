@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -61,8 +62,7 @@ class MainActivity : AppCompatActivity() {
 
         buttonResetWeek.setOnClickListener {
             sharedPreferences.edit()
-                .putFloat("weeklyHours", 0f)
-                .putFloat("lastShiftHours", 0f)
+                .remove("dailyLog")
                 .remove("clockInTime")
                 .apply()
 
@@ -151,9 +151,6 @@ class MainActivity : AppCompatActivity() {
         val workedMillis = clockOutTime - clockInTime
         val workedHours = workedMillis.toDouble() / (1000 * 60 * 60)
 
-        val currentWeeklyHours = sharedPreferences.getFloat("weeklyHours", 0f).toDouble()
-        val newWeeklyHours = currentWeeklyHours + workedHours
-
         val shiftEntry = ShiftEntry(
             date = formatDate(clockOutTime),
             clockIn = formatTime(clockInTime),
@@ -164,8 +161,6 @@ class MainActivity : AppCompatActivity() {
         saveShift(shiftEntry)
 
         sharedPreferences.edit()
-            .putFloat("weeklyHours", newWeeklyHours.toFloat())
-            .putFloat("lastShiftHours", workedHours.toFloat())
             .remove("clockInTime")
             .apply()
 
@@ -180,7 +175,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshMainScreen() {
-        updateWeeklyHours()
+        val weeklyShifts = getCurrentWeekShifts(loadShifts())
+        val weeklyHours = weeklyShifts.sumOf { it.hoursWorked }
+
+        textWeeklyHours.text = String.format(Locale.US, "Weekly hours: %.2f", weeklyHours)
 
         val savedClockInTime = sharedPreferences.getLong("clockInTime", 0L)
         if (savedClockInTime != 0L) {
@@ -189,17 +187,45 @@ class MainActivity : AppCompatActivity() {
             textStatus.text = "Not clocked in"
         }
 
-        val lastShiftHours = sharedPreferences.getFloat("lastShiftHours", 0f)
-        textLastShift.text = String.format(
-            Locale.US,
-            "Last shift: %.2f hours",
-            lastShiftHours
-        )
+        val lastShift = weeklyShifts.lastOrNull()
+        if (lastShift != null) {
+            textLastShift.text = String.format(
+                Locale.US,
+                "Last shift: %.2f hours",
+                lastShift.hoursWorked
+            )
+        } else {
+            textLastShift.text = "Last shift: 0.00 hours"
+        }
     }
 
-    private fun updateWeeklyHours() {
-        val weeklyHours = sharedPreferences.getFloat("weeklyHours", 0f)
-        textWeeklyHours.text = String.format(Locale.US, "Weekly hours: %.2f", weeklyHours)
+    private fun getCurrentWeekShifts(allShifts: List<ShiftEntry>): List<ShiftEntry> {
+        val inputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+
+        val calendar = Calendar.getInstance()
+        calendar.firstDayOfWeek = Calendar.SUNDAY
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfWeek = calendar.timeInMillis
+
+        calendar.add(Calendar.DAY_OF_WEEK, 6)
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
+        val endOfWeek = calendar.timeInMillis
+
+        return allShifts.filter { shift ->
+            try {
+                val parsedDate = inputFormat.parse(shift.date)
+                parsedDate != null && parsedDate.time in startOfWeek..endOfWeek
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
 
     private fun requestAddQuickTile() {

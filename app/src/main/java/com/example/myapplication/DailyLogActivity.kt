@@ -1,11 +1,14 @@
 package com.example.myapplication
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.ContentValues
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ListView
 import android.widget.Toast
@@ -27,7 +30,9 @@ class DailyLogActivity : AppCompatActivity() {
     private lateinit var adapter: ShiftAdapter
     private lateinit var fabSaveCsv: FloatingActionButton
     private lateinit var fabClearWeek: FloatingActionButton
+    private lateinit var fabAddManualEntry: FloatingActionButton
     private lateinit var buttonShareWeeklyLog: ImageButton
+
     private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,12 +45,13 @@ class DailyLogActivity : AppCompatActivity() {
         listView = findViewById(R.id.listViewShifts)
         fabSaveCsv = findViewById(R.id.fabSaveCsv)
         fabClearWeek = findViewById(R.id.fabClearWeek)
+        fabAddManualEntry = findViewById(R.id.fabAddManualEntry)
         buttonShareWeeklyLog = findViewById(R.id.buttonShareWeeklyLog)
 
         loadList()
 
-        buttonShareWeeklyLog.setOnClickListener {
-            shareWeeklyLogAsText()
+        fabAddManualEntry.setOnClickListener {
+            showManualEntryDialog()
         }
 
         fabSaveCsv.setOnClickListener {
@@ -55,6 +61,31 @@ class DailyLogActivity : AppCompatActivity() {
         fabClearWeek.setOnClickListener {
             confirmClearWeek()
         }
+
+        buttonShareWeeklyLog.setOnClickListener {
+            shareWeeklyLogAsText()
+        }
+    }
+
+    private fun loadList() {
+        val shifts = getCurrentWeekShifts(loadShifts()).reversed().toMutableList()
+
+        adapter = ShiftAdapter(this, shifts) { selectedShift ->
+            showEditEntryDialog(selectedShift)
+        }
+
+        listView.adapter = adapter
+    }
+
+    private fun loadShifts(): MutableList<ShiftEntry> {
+        val json = sharedPreferences.getString("dailyLog", null) ?: return mutableListOf()
+        val type = object : TypeToken<MutableList<ShiftEntry>>() {}.type
+        return gson.fromJson(json, type) ?: mutableListOf()
+    }
+
+    private fun saveShifts(shifts: MutableList<ShiftEntry>) {
+        val json = gson.toJson(shifts)
+        sharedPreferences.edit().putString("dailyLog", json).apply()
     }
 
     private fun confirmClearWeek() {
@@ -75,16 +106,16 @@ class DailyLogActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun loadList() {
-        val shifts = getCurrentWeekShifts(loadShifts()).reversed()
-        adapter = ShiftAdapter(this, shifts.toMutableList())
-        listView.adapter = adapter
-    }
+    private fun clearWeeklyData() {
+        sharedPreferences.edit()
+            .remove("dailyLog")
+            .remove("weeklyHours")
+            .remove("clockInTime")
+            .remove("lastShiftHours")
+            .apply()
 
-    private fun loadShifts(): MutableList<ShiftEntry> {
-        val json = sharedPreferences.getString("dailyLog", null) ?: return mutableListOf()
-        val type = object : TypeToken<MutableList<ShiftEntry>>() {}.type
-        return gson.fromJson(json, type) ?: mutableListOf()
+        loadList()
+        Toast.makeText(this, "Week cleared", Toast.LENGTH_SHORT).show()
     }
 
     private fun shareWeeklyLogAsText() {
@@ -203,17 +234,228 @@ class DailyLogActivity : AppCompatActivity() {
         return format.format(calendar.time)
     }
 
-    private fun clearWeeklyData() {
-        sharedPreferences.edit()
-            .remove("dailyLog")
-            .remove("weeklyHours")
-            .remove("clockInTime")
-            .remove("lastShiftHours")
-            .apply()
+    private fun showManualEntryDialog() {
+        showEntryDialog(existingShift = null)
+    }
 
-        loadList()
+    private fun showEditEntryDialog(shiftToEdit: ShiftEntry) {
+        showEntryDialog(existingShift = shiftToEdit)
+    }
 
-        Toast.makeText(this, "Week cleared", Toast.LENGTH_SHORT).show()
+    private fun showEntryDialog(existingShift: ShiftEntry?) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_manual_entry, null)
+
+        val editDate = dialogView.findViewById<EditText>(R.id.editDate)
+        val editClockIn = dialogView.findViewById<EditText>(R.id.editClockIn)
+        val editClockOut = dialogView.findViewById<EditText>(R.id.editClockOut)
+        val editHours = dialogView.findViewById<EditText>(R.id.editHours)
+
+        val selectedDate = Calendar.getInstance()
+        var clockInHour = -1
+        var clockInMinute = -1
+        var clockOutHour = -1
+        var clockOutMinute = -1
+
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.US)
+
+        if (existingShift != null) {
+            editDate.setText(existingShift.date)
+            editClockIn.setText(existingShift.clockIn)
+            editClockOut.setText(existingShift.clockOut)
+            editHours.setText(String.format(Locale.US, "%.2f", existingShift.hoursWorked))
+        } else {
+            editDate.setText(dateFormat.format(selectedDate.time))
+        }
+
+        editDate.setOnClickListener {
+            DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    selectedDate.set(Calendar.YEAR, year)
+                    selectedDate.set(Calendar.MONTH, month)
+                    selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    editDate.setText(dateFormat.format(selectedDate.time))
+                },
+                selectedDate.get(Calendar.YEAR),
+                selectedDate.get(Calendar.MONTH),
+                selectedDate.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        editClockIn.setOnClickListener {
+            val now = Calendar.getInstance()
+            TimePickerDialog(
+                this,
+                { _, hourOfDay, minute ->
+                    clockInHour = hourOfDay
+                    clockInMinute = minute
+
+                    val cal = Calendar.getInstance()
+                    cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    cal.set(Calendar.MINUTE, minute)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+
+                    editClockIn.setText(timeFormat.format(cal.time))
+                    autoFillHours(editHours, clockInHour, clockInMinute, clockOutHour, clockOutMinute)
+                },
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE),
+                false
+            ).show()
+        }
+
+        editClockOut.setOnClickListener {
+            val now = Calendar.getInstance()
+            TimePickerDialog(
+                this,
+                { _, hourOfDay, minute ->
+                    clockOutHour = hourOfDay
+                    clockOutMinute = minute
+
+                    val cal = Calendar.getInstance()
+                    cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    cal.set(Calendar.MINUTE, minute)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+
+                    editClockOut.setText(timeFormat.format(cal.time))
+                    autoFillHours(editHours, clockInHour, clockInMinute, clockOutHour, clockOutMinute)
+                },
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE),
+                false
+            ).show()
+        }
+
+        val title = if (existingShift == null) "Add Manual Entry" else "Edit Entry"
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(dialogView)
+            .setPositiveButton("Save", null)
+            .setNegativeButton("Cancel", null)
+
+        if (existingShift != null) {
+            builder.setNeutralButton("Delete", null)
+        }
+
+        val dialog = builder.create()
+        dialog.show()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val date = editDate.text.toString().trim()
+            val clockIn = editClockIn.text.toString().trim()
+            val clockOut = editClockOut.text.toString().trim()
+            val hoursText = editHours.text.toString().trim()
+
+            if (date.isEmpty() || clockIn.isEmpty() || clockOut.isEmpty() || hoursText.isEmpty()) {
+                Toast.makeText(this, "Fill in all fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val hours = hoursText.toDoubleOrNull()
+            if (hours == null) {
+                Toast.makeText(this, "Enter valid hours", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val shifts = loadShifts()
+
+            if (existingShift == null) {
+                shifts.add(
+                    ShiftEntry(
+                        date = date,
+                        clockIn = clockIn,
+                        clockOut = clockOut,
+                        hoursWorked = hours
+                    )
+                )
+
+                saveShifts(shifts)
+                loadList()
+                Toast.makeText(this, "Manual entry added", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            } else {
+                val index = shifts.indexOfFirst {
+                    it.date == existingShift.date &&
+                            it.clockIn == existingShift.clockIn &&
+                            it.clockOut == existingShift.clockOut &&
+                            it.hoursWorked == existingShift.hoursWorked
+                }
+
+                if (index == -1) {
+                    Toast.makeText(this, "Could not find entry to update", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                shifts[index] = ShiftEntry(
+                    date = date,
+                    clockIn = clockIn,
+                    clockOut = clockOut,
+                    hoursWorked = hours
+                )
+
+                saveShifts(shifts)
+                loadList()
+                Toast.makeText(this, "Entry updated", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+        }
+
+        if (existingShift != null) {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                val shifts = loadShifts()
+
+                val removed = shifts.removeAll {
+                    it.date == existingShift.date &&
+                            it.clockIn == existingShift.clockIn &&
+                            it.clockOut == existingShift.clockOut &&
+                            it.hoursWorked == existingShift.hoursWorked
+                }
+
+                if (removed) {
+                    saveShifts(shifts)
+                    loadList()
+                    Toast.makeText(this, "Entry deleted", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "Could not find entry to delete", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun autoFillHours(
+        editHours: EditText,
+        clockInHour: Int,
+        clockInMinute: Int,
+        clockOutHour: Int,
+        clockOutMinute: Int
+    ) {
+        if (clockInHour == -1 || clockOutHour == -1) return
+
+        val start = Calendar.getInstance()
+        start.set(Calendar.HOUR_OF_DAY, clockInHour)
+        start.set(Calendar.MINUTE, clockInMinute)
+        start.set(Calendar.SECOND, 0)
+        start.set(Calendar.MILLISECOND, 0)
+
+        val end = Calendar.getInstance()
+        end.set(Calendar.HOUR_OF_DAY, clockOutHour)
+        end.set(Calendar.MINUTE, clockOutMinute)
+        end.set(Calendar.SECOND, 0)
+        end.set(Calendar.MILLISECOND, 0)
+
+        if (end.before(start)) {
+            end.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        val diffMillis = end.timeInMillis - start.timeInMillis
+        val hours = diffMillis.toDouble() / (1000 * 60 * 60)
+
+        editHours.setText(String.format(Locale.US, "%.2f", hours))
     }
 
     private fun getCurrentWeekShifts(allShifts: List<ShiftEntry>): List<ShiftEntry> {

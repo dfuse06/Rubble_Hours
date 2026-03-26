@@ -10,7 +10,8 @@ import java.util.Locale
 
 class ShiftAdapter(
     context: Context,
-    private val shifts: List<ShiftEntry>
+    private val shifts: List<ShiftEntry>,
+    private val onItemClick: (ShiftEntry) -> Unit
 ) : ArrayAdapter<ShiftEntry>(context, 0, shifts) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -28,6 +29,10 @@ class ShiftAdapter(
         textClockIn.text = "In: ${shift.clockIn}"
         textClockOut.text = "Out: ${shift.clockOut}"
         textHoursWorked.text = String.format(Locale.US, "Hours: %.2f", shift.hoursWorked)
+
+        view.setOnClickListener {
+            onItemClick(shift)
+        }
 
         return view
     }
