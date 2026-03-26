@@ -16,6 +16,11 @@ import java.util.Locale
 class PayCalculatorActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var editRate: EditText
+    private lateinit var textSavedHours: TextView
+    private lateinit var textPayResult: TextView
+    private lateinit var buttonCalculatePay: Button
+
     private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,12 +30,12 @@ class PayCalculatorActivity : AppCompatActivity() {
 
         sharedPreferences = getSharedPreferences("WorkAppPrefs", MODE_PRIVATE)
 
-        val editRate = findViewById<EditText>(R.id.editRate)
-        val textSavedHours = findViewById<TextView>(R.id.textSavedHours)
-        val textPayResult = findViewById<TextView>(R.id.textPayResult)
-        val buttonCalculatePay = findViewById<Button>(R.id.buttonCalculatePay)
+        editRate = findViewById(R.id.editRate)
+        textSavedHours = findViewById(R.id.textSavedHours)
+        textPayResult = findViewById(R.id.textPayResult)
+        buttonCalculatePay = findViewById(R.id.buttonCalculatePay)
 
-        updateHoursDisplay(textSavedHours)
+        updateHoursDisplay()
 
         buttonCalculatePay.setOnClickListener {
             val rateText = editRate.text.toString().trim()
@@ -46,23 +51,41 @@ class PayCalculatorActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val weeklyHours = getWeeklyHoursFromLog()
-            val pay = weeklyHours * rate
+            val totalHours = getWeeklyHoursFromLog()
+            val regularHours = minOf(totalHours, 40.0)
+            val overtimeHours = maxOf(0.0, totalHours - 40.0)
 
-            textSavedHours.text = String.format(Locale.US, "Saved Hours: %.2f", weeklyHours)
-            textPayResult.text = String.format(Locale.US, "Estimated Pay: $%.2f", pay)
+            val regularPay = regularHours * rate
+            val overtimePay = overtimeHours * rate * 1.5
+            val totalPay = regularPay + overtimePay
+
+            textSavedHours.text = String.format(
+                Locale.US,
+                "Saved Hours: %.2f",
+                totalHours
+            )
+
+            textPayResult.text = String.format(
+                Locale.US,
+                "Estimated Pay: $%.2f\n\nRegular Hours: %.2f\nOvertime Hours: %.2f\nRegular Pay: $%.2f\nOvertime Pay: $%.2f",
+                totalPay,
+                regularHours,
+                overtimeHours,
+                regularPay,
+                overtimePay
+            )
         }
     }
 
     override fun onResume() {
         super.onResume()
-        val textSavedHours = findViewById<TextView>(R.id.textSavedHours)
-        updateHoursDisplay(textSavedHours)
+        updateHoursDisplay()
     }
 
-    private fun updateHoursDisplay(textSavedHours: TextView) {
+    private fun updateHoursDisplay() {
         val weeklyHours = getWeeklyHoursFromLog()
         textSavedHours.text = String.format(Locale.US, "Saved Hours: %.2f", weeklyHours)
+        textPayResult.text = "Estimated Pay: $0.00"
     }
 
     private fun getWeeklyHoursFromLog(): Double {
